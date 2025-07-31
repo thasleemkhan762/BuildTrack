@@ -2,11 +2,16 @@
 
 
 import { useState } from 'react';
-import { Container, Row, Col, Card, Button, Tabs, Tab, Table } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Tabs, Tab, Table, Modal } from 'react-bootstrap';
 import { Alarm, Kanban, ListCheck, People, BarChart } from 'react-bootstrap-icons';
+import ProjectForm from '@/components/ProjectForm';
 
 export default function DashboardPage() {
   const [key, setKey] = useState('overview');
+  const [showProjectModal, setShowProjectModal] = useState(false);
+
+  const handleOpenProjectModal = () => setShowProjectModal(true);
+  const handleCloseProjectModal = () => setShowProjectModal(false);
 
   return (
     <Container fluid className="p-4">
@@ -16,10 +21,18 @@ export default function DashboardPage() {
           <p className="text-muted">Here's a list of your projects and their status.</p>
         </Col>
         <Col className="text-end">
-          <Button variant="primary">
+          <Button variant="primary" onClick={handleOpenProjectModal}>
             <Kanban className="me-2" /> New Project
           </Button>
         </Col>
+        <Modal show={showProjectModal} onHide={handleCloseProjectModal} centered>
+          <Modal.Header closeButton>
+            <Modal.Title>New Project</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <ProjectForm onSuccess={handleCloseProjectModal} onCancel={handleCloseProjectModal} />
+          </Modal.Body>
+        </Modal>
       </Row>
 
       <Tabs activeKey={key} onSelect={(k) => setKey(k as string)} className="mb-3">
