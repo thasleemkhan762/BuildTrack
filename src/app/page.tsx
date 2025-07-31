@@ -7,6 +7,9 @@ import { Alarm, Kanban, ListCheck, People, BarChart } from 'react-bootstrap-icon
 import ProjectForm from '@/components/ProjectForm';
 import { getProjects } from '@/lib/projectService';
 import { Project } from '@/types/project';
+import { Doughnut } from 'react-chartjs-2';
+import { Chart, ArcElement, Tooltip, Legend } from 'chart.js';
+Chart.register(ArcElement, Tooltip, Legend);
 
 export default function DashboardPage() {
   const [key, setKey] = useState('overview');
@@ -119,7 +122,40 @@ export default function DashboardPage() {
               <Card>
                 <Card.Header>Project Overview</Card.Header>
                 <Card.Body className="d-flex align-items-center justify-content-center" style={{ height: 300, background: '#f8f9fa' }}>
-                  <p className="text-muted">Project chart will be displayed here</p>
+                  {isLoading ? (
+                    <Spinner animation="border" size="sm" />
+                  ) : (
+                    <div style={{ width: 250, height: 250 }}>
+                      <Doughnut
+                        data={{
+                          labels: ['Planning', 'In Progress', 'On Hold', 'Completed'],
+                          datasets: [
+                            {
+                              label: 'Projects by Status',
+                              data: [
+                                projects.filter(p => p.status === 'planning').length,
+                                projects.filter(p => p.status === 'in_progress').length,
+                                projects.filter(p => p.status === 'on_hold').length,
+                                projects.filter(p => p.status === 'completed').length,
+                              ],
+                              backgroundColor: [
+                                '#6c757d', // planning
+                                '#0d6efd', // in_progress
+                                '#ffc107', // on_hold
+                                '#198754', // completed
+                              ],
+                              borderWidth: 1,
+                            },
+                          ],
+                        }}
+                        options={{
+                          plugins: {
+                            legend: { position: 'bottom' },
+                          },
+                        }}
+                      />
+                    </div>
+                  )}
                 </Card.Body>
               </Card>
             </Col>
