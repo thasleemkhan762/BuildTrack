@@ -1,17 +1,43 @@
 "use client"
 
 
-import { useState } from 'react';
-import { Container, Row, Col, Card, Button, Tabs, Tab, Table, Modal } from 'react-bootstrap';
+import { useState, useEffect } from 'react';
+import { Container, Row, Col, Card, Button, Tabs, Tab, Table, Modal, Spinner } from 'react-bootstrap';
 import { Alarm, Kanban, ListCheck, People, BarChart } from 'react-bootstrap-icons';
 import ProjectForm from '@/components/ProjectForm';
+import { getProjects } from '@/lib/projectService';
+import { Project } from '@/types/project';
 
 export default function DashboardPage() {
   const [key, setKey] = useState('overview');
   const [showProjectModal, setShowProjectModal] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const handleOpenProjectModal = () => setShowProjectModal(true);
   const handleCloseProjectModal = () => setShowProjectModal(false);
+
+  // Fetch projects from API
+  useEffect(() => {
+    const fetchProjects = async () => {
+      setIsLoading(true);
+      try {
+        const data = await getProjects();
+        setProjects(data);
+      } catch (error) {
+        setProjects([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchProjects();
+  }, [showProjectModal]); // refetch when modal closes (new project may be added)
+
+  // Compute metrics
+  const totalProjects = projects.length;
+  const teamMembers = projects.reduce((sum, p) => sum + (p.teamSize || 0), 0);
+  const completedTasks = projects.length > 0 ? Math.round((projects.filter(p => p.progress >= 100).length / projects.length) * 100) : 0;
+  const activeTasks = projects.filter(p => p.status === 'in_progress').length;
 
   return (
     <Container fluid className="p-4">
@@ -45,8 +71,8 @@ export default function DashboardPage() {
                     <Card.Title className="mb-0">Total Projects</Card.Title>
                     <Kanban className="text-muted" />
                   </div>
-                  <h3>12</h3>
-                  <p className="text-muted">+2 from last month</p>
+                  <h3>{isLoading ? <Spinner animation="border" size="sm" /> : totalProjects}</h3>
+                  <p className="text-muted">Total number of projects</p>
                 </Card.Body>
               </Card>
             </Col>
@@ -57,8 +83,8 @@ export default function DashboardPage() {
                     <Card.Title className="mb-0">Active Tasks</Card.Title>
                     <ListCheck className="text-muted" />
                   </div>
-                  <h3>24</h3>
-                  <p className="text-muted">+5 from last week</p>
+                  <h3>{isLoading ? <Spinner animation="border" size="sm" /> : activeTasks}</h3>
+                  <p className="text-muted">Active projects</p>
                 </Card.Body>
               </Card>
             </Col>
@@ -69,8 +95,8 @@ export default function DashboardPage() {
                     <Card.Title className="mb-0">Team Members</Card.Title>
                     <People className="text-muted" />
                   </div>
-                  <h3>8</h3>
-                  <p className="text-muted">+1 new hire this month</p>
+                  <h3>{isLoading ? <Spinner animation="border" size="sm" /> : teamMembers}</h3>
+                  <p className="text-muted">Total team members (sum)</p>
                 </Card.Body>
               </Card>
             </Col>
@@ -81,8 +107,8 @@ export default function DashboardPage() {
                     <Card.Title className="mb-0">Tasks Completed</Card.Title>
                     <BarChart className="text-muted" />
                   </div>
-                  <h3>89%</h3>
-                  <p className="text-muted">+5% from last month</p>
+                  <h3>{isLoading ? <Spinner animation="border" size="sm" /> : completedTasks + '%'}</h3>
+                  <p className="text-muted">Projects completed (%)</p>
                 </Card.Body>
               </Card>
             </Col>
@@ -106,15 +132,17 @@ export default function DashboardPage() {
                   </div>
                 </Card.Header>
                 <Card.Body>
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="d-flex justify-content-between mb-3">
-                      <div>
-                        <strong>Project {i} updated</strong>
-                        <p className="mb-0 text-muted">Task completed by John Doe</p>
+                  {isLoading ? <Spinner animation="border" size="sm" /> :
+                    projects.slice(0, 3).map((p, i) => (
+                      <div key={p.id} className="d-flex justify-content-between mb-3">
+                        <div>
+                          <strong>{p.name} updated</strong>
+                          <p className="mb-0 text-muted">Status: {p.status}</p>
+                        </div>
+                        <span className="text-muted">{new Date(p.updatedAt).toLocaleDateString()}</span>
                       </div>
-                      <span className="text-muted">2h ago</span>
-                    </div>
-                  ))}
+                    ))
+                  }
                 </Card.Body>
               </Card>
             </Col>
@@ -133,16 +161,17 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td>1</td>
-                    <td>Site Renovation</td>
-                    <td>In Progress</td>
-                  </tr>
-                  <tr>
-                    <td>2</td>
-                    <td>New Office</td>
-                    <td>Completed</td>
-                  </tr>
+                  {isLoading ? (
+                    <tr><td colSpan={3}><Spinner animation="border" size="sm" /></td></tr>
+                  ) : (
+                    projects.map((p, idx) => (
+                      <tr key={p.id}>
+                        <td>{idx + 1}</td>
+                        <td>{p.name}</td>
+                        <td>{p.status}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </Table>
             </Card.Body>
